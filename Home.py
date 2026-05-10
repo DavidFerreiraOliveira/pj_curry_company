@@ -15,19 +15,28 @@ paginas = st.sidebar.radio("Selecione a visão:",
     ["🏠 Home", "🏢 Visão Empresa", "🚚 Visão Entregadores", "🍴 Visão Restaurantes"])
 
 # 4. LÓGICA DE CONEXÃO (Substitua seu bloco por este)
+import os
+
+# No seu Home.py, mude a lógica para isto:
+caminho_base = os.path.dirname(__file__) # Descobre onde o Home.py está
+
 if paginas == "🏠 Home":
     st.title("Dashboard Curry Company")
     st.markdown("### Selecione uma das opções no menu lateral.")
 
 elif paginas == "🏢 Visão Empresa":
-    #Em vez de switch_page, vamos rodar o código do arquivo direto aqui
-    with open("pages/VISAO_EMPRESA.py", encoding="utf-8") as f:
+    # Monta o caminho correto para o servidor
+    path_empresa = os.path.join(caminho_base, "pages", "VISAO_EMPRESA.py")
+    with open(path_empresa, encoding="utf-8") as f:
         exec(f.read())
 
 elif paginas == "🚚 Visão Entregadores":
-    with open("pages/VISAO_ENTREGADORES.py", encoding="utf-8") as f:
+    path_entregadores = os.path.join(caminho_base, "pages", "VISAO_ENTREGADORES.py")
+    with open(path_entregadores, encoding="utf-8") as f:
         exec(f.read())
 
 elif paginas == "🍴 Visão Restaurantes":
-   with open("pages/VISAO_RESTAURANTE.py", encoding="utf-8") as f:
+    path_restaurante = os.path.join(caminho_base, "pages", "VISAO_RESTAURANTE.py")
+    with open(path_restaurante, encoding="utf-8") as f:
         exec(f.read())
+
