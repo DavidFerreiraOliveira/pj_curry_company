@@ -15,19 +15,19 @@ paginas = st.sidebar.radio("Selecione a visão:",
     ["🏠 Home", "🏢 Visão Empresa", "🚚 Visão Entregadores", "🍴 Visão Restaurantes"])
 
 # 4. LÓGICA DE CONEXÃO (Substitua seu bloco por este)
-#if paginas == "🏠 Home":
-    #st.title("Dashboard Curry Company")
-    #st.markdown("### Selecione uma das opções no menu lateral.")
+if paginas == "🏠 Home":
+    st.title("Dashboard Curry Company")
+    st.markdown("### Selecione uma das opções no menu lateral.")
 
-#elif paginas == "🏢 Visão Empresa":
-    # Em vez de switch_page, vamos rodar o código do arquivo direto aqui
- #   with open("pages/VISAO_EMPRESA.py", encoding="utf-8") as f:
-  #      exec(f.read())
+elif paginas == "🏢 Visão Empresa":
+    #Em vez de switch_page, vamos rodar o código do arquivo direto aqui
+    with open("pages/VISAO_EMPRESA.py", encoding="utf-8") as f:
+        exec(f.read())
 
-#elif paginas == "🚚 Visão Entregadores":
- #   with open("pages/VISAO_ENTREGADORES.py", encoding="utf-8") as f:
-  #      exec(f.read())
+elif paginas == "🚚 Visão Entregadores":
+    with open("pages/VISAO_ENTREGADORES.py", encoding="utf-8") as f:
+        exec(f.read())
 
-#elif paginas == "🍴 Visão Restaurantes":
- #   with open("pages/VISAO_RESTAURANTE.py", encoding="utf-8") as f:
-  #      exec(f.read())
+elif paginas == "🍴 Visão Restaurantes":
+   with open("pages/VISAO_RESTAURANTE.py", encoding="utf-8") as f:
+        exec(f.read())
