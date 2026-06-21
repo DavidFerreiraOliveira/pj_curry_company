@@ -78,7 +78,7 @@ with v1:
             st.markdown('#### 👥 Operação Geral')
             c1, c2 = st.columns(2)
             
-            # Quantidade de restaurantes únicos
+            # Quantidade de entregadores únicos
             df['Delivery_person_ID'] = df['Delivery_person_ID'].astype(str).str.strip()
             entregadores = df['Delivery_person_ID'].nunique()
             c1.metric('Entregadores Únicos', entregadores)
@@ -87,28 +87,19 @@ with v1:
             df_dist = df[(df['Restaurant_latitude'] != 0) & (df['Restaurant_longitude'] != 0) &
                          (df['Delivery_location_latitude'] != 0) & (df['Delivery_location_longitude'] != 0)].copy()
             
-            # Garante que as latitudes de entrega sejam negativas (se for o caso da região dos dados)
-            # Para corrigir o sinal invertido que deforma o cálculo:
-            df_dist['Restaurant_latitude'] = df_dist['Restaurant_latitude'].apply(lambda x: -abs(x) if x > 0 and x < 40 else x)
-            df_dist['Delivery_location_latitude'] = df_dist['Delivery_location_latitude'].apply(lambda x: -abs(x) if x > 0 and x < 40 else x)
+            # Corrige o sinal invertido das latitudes que deforma o cálculo
+            df_dist['Restaurant_latitude'] = df_dist['Restaurant_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
+            df_dist['Delivery_location_latitude'] = df_dist['Delivery_location_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
             
-            # Aplica a fórmula apenas nas coordenadas válidas
-            if not df_dist.empty:
-                df_dist['distance'] = df_dist.apply(lambda x: haversine(
-                    (x['Restaurant_latitude'], x['Restaurant_longitude']),
-                    (x['Delivery_location_latitude'], x['Delivery_location_longitude'])
-                ), axis=1)
-                
-                # Filtra distâncias absurdas que são erros de digitação do sistema (ex: entregas maiores que 50km)
-                df_dist = df_dist[df_dist['distance'] < 50]
-                
-                dist_media = df_dist['distance'].mean()
-                c2.metric('Distância Média', f"{dist_media:.2f} km")
-                
-                # Salva de volta no df original para o gráfico de pizza não quebrar
-                df['distance'] = df_dist['distance']
-            else:
-                c2.metric('Distância Média', "0.00 km")
+            # 📐 CÁLCULO DA DISTÂNCIA: Aplica a fórmula haversine linha por linha
+            df_dist['distance'] = df_dist.apply(lambda x: haversine(
+                (x['Restaurant_latitude'], x['Restaurant_longitude']),
+                (x['Delivery_location_latitude'], x['Delivery_location_longitude'])
+            ), axis=1)
+            
+            # Calcula a média de distância geral e exibe no segundo card (c2)
+            distancia_media = df_dist['distance'].mean()
+            c2.metric('Distância Média', f"{distancia_media:.2f} km")
 
 
         with meio: 
