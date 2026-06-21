@@ -1,175 +1,195 @@
 import streamlit as st 
-#====================================
-# importaçao de bibliotecaas 
-#====================================
 import pandas as pd
-
-
-# bibliotea utilizada para adiçao de imagens 
 from PIL import Image as im
-st.set_page_config(layout = 'wide')
 
+# 1. Configurações Iniciais da Página
+# OBS: Remova a linha abaixo se este arquivo for chamado via exec() no HOME.py
+st.set_page_config(layout='wide')
+
+# 2. Carregamento dos Dados
 df = pd.read_csv('treino.csv')
 
+# ==============================================================================
+# BARRA LATERAL (Criação de Todos os Filtros na Ordem Correta)
+# ==============================================================================
+try:
+    imagem_logo = im.open('imagem.jpg')
+    st.sidebar.image(imagem_logo, width=250)
+except:
+    st.sidebar.warning("Imagem 'imagem.jpg' não encontrada.")
 
-#====================================
-# Criaçao de abas e estruturaçao da pagina 
-#====================================
+st.sidebar.markdown('---')
+st.sidebar.markdown('# Projeto de Portfólio')
+st.sidebar.markdown('---')
+st.sidebar.markdown('## Filtros:')
 
-# funçao serve ára criar titulos
-st.header('Visão Entregadores')
-
-# para a inserçao e imagems a pagina
-#image= r'C:\Users\ddfer\PYTHON\PYTHON\imagem.jpg'
-im = im.open('imagem.jpg')
-st.sidebar.image(im, width = 250)
-
-# 1 funcao serve psara criar uma barra lateral e adiconar conforme a necessidade
-# 2 funçao serve para criar titulos e subtitulos usando o ### como forma de grau de subordinaçao 
-st.sidebar.markdown('''------''')
-st.sidebar.markdown('# Projeto de Portifolio')
-# aqui e possivel fazer separeçoes com linhas 
-st.sidebar.markdown('''------''')
-
-st.sidebar.markdown('##  Filtros: ')
-# funcao criar um filtro de data em forma de linha na barra lateral 
-
-#====================================
-# CRIAÇAO DE FILTROS  
-#====================================
-
+# 1. Filtro de Linha Temporal (Slider)
 date = st.sidebar.slider(
-    'Data',
-    # aqui eu falo em qual data ficara quando esta em repouso 
+    'Data máxima de entrega:',
     value=pd.Timestamp(2022, 4, 3).date(),
-    # me retorna a menor data do dataframe 
     min_value=pd.Timestamp(2022, 2, 11).date(),
-    # retorna a data maxima do dataframe 
     max_value=pd.Timestamp(2022, 4, 6).date(),
-    # formato com que a data vai ficar sendo dia - mes - ano 
-    format='DD-MM-YYYY'
+    format='DD-MM-YYYY',
+    key='slider_data_entregadores'
 )                              
-# para visualizar o resultado final do codigo na  pagina  
-st.header(date )
-# serve para visulalizar o dataframe direto na paginas
-df.dropna(subset= 'Road_traffic_density', inplace= True ) 
-df['Road_traffic_density'] = df.loc[df['Road_traffic_density']!= 'NaN ','Road_traffic_density']
 
-# filtro para multiplas condiçoes 
-cond = st.sidebar.multiselect( 'Condiçao do Veiculo ', df['Road_traffic_density'].unique() ,default = df['Road_traffic_density'].unique())
+# Limpezas prévias essenciais para evitar falhas de texto 'NaN' nos componentes
+df['Road_traffic_density'] = df['Road_traffic_density'].astype(str).str.strip()
+df = df[df['Road_traffic_density'] != 'NaN']
 
+df['Delivery_person_Age'] = df['Delivery_person_Age'].astype(str).str.strip()
+df_idades_validas = df[df['Delivery_person_Age'] != 'NaN']
 
-st.sidebar.markdown('''------''')
+df['Vehicle_condition'] = df['Vehicle_condition'].astype(str).str.strip()
+df_veiculos_validos = df[df['Vehicle_condition'] != 'NaN']
 
+# 2. Filtro de Densidade de Tráfego
+cond = st.sidebar.multiselect(
+    'Condição de Trânsito:', 
+    df['Road_traffic_density'].unique(), 
+    default=list(df['Road_traffic_density'].unique())
+)
 
+# 3. Filtro de Intervalo de Idade (Slider Duplo) - Tratamento seguro de float
+menor_idade_base = int(df_idades_validas['Delivery_person_Age'].astype(float).astype(int).min())
+maior_idade_base = int(df_idades_validas['Delivery_person_Age'].astype(float).astype(int).max())
+
+idades_selecionadas = st.sidebar.slider(
+    'Filtrar por Idade dos Entregadores:',
+    min_value=menor_idade_base,
+    max_value=maior_idade_base,
+    value=(menor_idade_base, maior_idade_base),
+    key='slider_idade_entregadores'
+)
+
+# 4. Filtro de Condição do Veículo (Multiselect)
+opcoes_veiculo = sorted(df_veiculos_validos['Vehicle_condition'].unique())
+cond_veiculo = st.sidebar.multiselect(
+    'Condição do Veículo:', 
+    opcoes_veiculo, 
+    default=list(opcoes_veiculo)
+)
+
+st.sidebar.markdown('---')
 st.sidebar.markdown('# Criado Por:')
-
 st.sidebar.markdown('### David Ferreira De Oliveira')
 
-
-# para que o fliltro de linha temporal seja aplicado nos graficos
-
-## transforma a coluna do date frame em data
+# ==============================================================================
+# APLICAÇÃO DE TODOS OS FILTROS NO DATAFRAME
+# ==============================================================================
 df['Order_Date'] = pd.to_datetime(df['Order_Date'])
-# cria uma variavel que recebe a condiçao para o filtro ser aplicado
-var = df['Order_Date'].dt.date < date  
-# usar a varivel( var ) para que o filtro funcione linha a linha 
-df = df.loc[var, :]
 
-# visualzar o grafico co o filro aplicado 
+# 1. Filtro de linha temporal (Data)
+var_data = df['Order_Date'].dt.date <= date 
+df = df.loc[var_data, :]
 
+# 2. Filtro de Densidade de Tráfego
+var_trafego = df['Road_traffic_density'].isin(cond)
+df = df.loc[var_trafego, :]
 
-# para que os fltro do tipo selecionavel seja aplicado nos graficos 
-var1 = df['Road_traffic_density'].isin (cond)
-df = df.loc[var1,:]
+# 3. Filtro de Intervalo de Idade
+df['Delivery_person_Age'] = pd.to_numeric(df['Delivery_person_Age'], errors='coerce')
+var_idade = (df['Delivery_person_Age'] >= idades_selecionadas[0]) & (df['Delivery_person_Age'] <= idades_selecionadas[1])
+df = df.loc[var_idade, :]
 
-# criar abas 
+# 4. Filtro de Condição do Veículo
+df['Vehicle_condition'] = df['Vehicle_condition'].astype(str).str.strip()
+var_veiculo = df['Vehicle_condition'].isin(cond_veiculo)
+df = df.loc[var_veiculo, :]
 
-v1 = st.tabs (['Visão Restaurante'])
+# ==============================================================================
+# CORPO PRINCIPAL DA PÁGINA (Cabeçalhos)
+# ==============================================================================
+st.title("🚚 Visão Entregadores")
+st.caption("##### Acompanhamento do perfil operacional, eficiência e métricas de desempenho dos entregadores parceiros.")
+st.markdown("---")
 
-#====================================
-# IDADES DOS ENTREGADORES   
-#====================================
-
-
+# ==============================================================================
+# SEÇÃO 1: CARDS DE MÉTRICAS GERAIS (Idade e Veículo)
+# ==============================================================================
 with st.container():
-    # Criamos duas colunas principais (uma para Idade, outra para Veículo)
     col_esquerda, col_direita = st.columns(2)
 
     with col_esquerda:
-        st.markdown("Idades dos Entregadores", unsafe_allow_html=True)
-        # Criamos sub-colunas dentro da coluna da esquerda
-        v1, v2 = st.columns(2)
+        st.markdown("#### 🎂 Idades dos Entregadores")
+        sub_col1, sub_col2 = st.columns(2)
         
-        df['Delivery_person_Age'] = df['Delivery_person_Age'].str.strip()
-        idades = df.loc[df['Delivery_person_Age'] != 'NaN', 'Delivery_person_Age'].astype(int)
-        
-        v1.metric('Mínima', idades.min())
-        v2.metric('Máxima', idades.max())
+        df_idades_cards = df.dropna(subset=['Delivery_person_Age'])
+        if not df_idades_cards.empty:
+            idades = df_idades_cards['Delivery_person_Age'].astype(float).astype(int)
+            sub_col1.metric('Mínima', f"{idades.min()} anos")
+            sub_col2.metric('Máxima', f"{idades.max()} anos")
 
     with col_direita:
-        st.markdown('Condição do Veículo', unsafe_allow_html=True)
-        # Criamos sub-colunas dentro da coluna da direita
-        v3, v4 = st.columns(2)
+        st.markdown('#### 🚗 Condição do Veículo')
+        sub_col3, sub_col4 = st.columns(2)
         
-        veiculo = df.loc[df['Vehicle_condition'] != 'NaN', 'Vehicle_condition'].astype(int)
-        
-        v3.metric('Pior', veiculo.min())
-        v4.metric('Melhor', veiculo.max())
+        df_veiculo_cards = df[df['Vehicle_condition'] != 'NaN']
+        if not df_veiculo_cards.empty:
+            veiculo = df_veiculo_cards['Vehicle_condition'].astype(int)
+            sub_col3.metric('Pior Estado', veiculo.min())
+            sub_col4.metric('Melhor Estado', veiculo.max())
      
-
 st.markdown('''---''')
                 
-#====================================
-# MEDIA DE AVALIAÇÃO POR ENTREGADOR   
-#====================================
-
-
+# ==============================================================================
+# SEÇÃO 2: AVALIAÇÕES (Tabelas de Médias e Desvios Padrão)
+# ==============================================================================
 with st.container():
-     v1,v2= st.columns(2, gap='large' )
-     st.markdown('''---''')        
-     with v1:
-        st.markdown('Média de avaliações por Entregador')
+    col_tabela1, col_tabela2 = st.columns(2, gap='large')
+    
+    with col_tabela1:
+        st.markdown('#### 🏅 Média de avaliações por Entregador')
          
         df['ID Entregadores Unicos'] = df['Delivery_person_ID']
-        df['Media de Avaliçoes'] = df['Delivery_person_Ratings'].astype(float)
-        avaliaçoes = df.dropna(subset='Media de Avaliçoes',inplace=True)
-        avaliaçoes = df.groupby('ID Entregadores Unicos')['Media de Avaliçoes'].mean().reset_index().round(2)
-        st.dataframe(avaliaçoes, hide_index= True,)
+        df['Media de Avaliçoes'] = pd.to_numeric(df['Delivery_person_Ratings'], errors='coerce')
+        
+        df_avaliacoes_limpo = df.dropna(subset=['Media de Avaliçoes'])
+        avaliaçoes = df_avaliacoes_limpo.groupby('ID Entregadores Unicos')['Media de Avaliçoes'].mean().reset_index().round(2)
+        st.dataframe(avaliaçoes, hide_index=True, use_container_width=True)
+        st.info("📊 **Avaliação Individual:** Nota média histórica acumulada por cada entregador cadastrado na plataforma.")
          
-         
-        with v2 :
-            st.markdown('A avaliação média e o desvio padrão por condições climáticas')
-            
-            df['Delivery_person_Ratings'] = pd.to_numeric(df['Delivery_person_Ratings'], errors='coerce')     
-            df['Weatherconditions'] = df['Weatherconditions'].str.strip()
-            df['Condições de Tempo' ] = df['Weatherconditions'] 
-            avm = (df.loc[df['Condições de Tempo' ] != 'conditions NaN']
-                   .groupby('Condições de Tempo' )['Delivery_person_Ratings']
-                   .agg( Média = 'mean', Despd = 'std')
-                   .reset_index() 
-                   .round(2)) 
-            st.dataframe(avm, hide_index= True )
-            
-            st.markdown('A avaliação média e o desvio padrão por tipo de tráfego')
-            
-            df['Road_traffic_density'] = df['Road_traffic_density'].str.strip()
-            avaliaçoes = (df.loc[df['Road_traffic_density'] !='NaN']
-                          .groupby('Road_traffic_density')['Delivery_person_Ratings']
-                          .agg( media = 'mean', despd = 'std').reset_index()).round(2)
-            st.dataframe(avaliaçoes, hide_index= True )
+    with col_tabela2:
+        st.markdown('#### 🌤️ Avaliação Média por Condições Climáticas')
+        
+        df['Delivery_person_Ratings'] = pd.to_numeric(df['Delivery_person_Ratings'], errors='coerce')     
+        df['Weatherconditions'] = df['Weatherconditions'].astype(str).str.strip()
+        
+        avm = (df[df['Weatherconditions'] != 'NaN']
+               .groupby('Weatherconditions')['Delivery_person_Ratings']
+               .agg(Média='mean', Desvio_Padrão='std')
+               .reset_index() 
+               .round(2)) 
+        st.dataframe(avm, hide_index=True, use_container_width=True)
+        
+        st.markdown('#### 🚦 Avaliação Média por Tipo de Tráfego')
+        
+        df['Road_traffic_density'] = df['Road_traffic_density'].astype(str).str.strip()
+        trafeg_av = (df[df['Road_traffic_density'] != 'NaN']
+                      .groupby('Road_traffic_density')['Delivery_person_Ratings']
+                      .agg(Média='mean', Desvio_Padrão='std')
+                      .reset_index()
+                      .round(2))
+        st.dataframe(trafeg_av, hide_index=True, use_container_width=True)
+        st.info("💡 **Desempenho por Contexto:** Compara como fatores externos (clima e trânsito) afetam diretamente as notas dadas pelos clientes.")
 
-with st.container(width = 800):
-            st.markdown( 'Os 10 entregadores mais rápidos por cidade')
+st.markdown('''---''')
 
-            df['Time_taken(min)'] = df['Time_taken(min)'].astype(str)
-            df['Time_taken(min)'] = df['Time_taken(min)'].str.strip()
-            df['Time_taken(min)'] = df['Time_taken(min)'].str.replace('(min)','')
-            df['Time_taken(min)'] = df['Time_taken(min)'].astype(float)
-            df.dropna(subset='Time_taken(min)' ,inplace=True)
-            fgh = (df.loc[(df['Time_taken(min)'].notna()) & 
-    (df['City']!= 'NaN ') ,['City', 'Delivery_person_ID','Time_taken(min)']].groupby(['City', 'Delivery_person_ID'])['Time_taken(min)'].sum().reset_index())
-            # Note: The output from the last execution of this cell suggests that 'NaN ' might not be the only non-numeric value or that there are issues with the `astype(float)` if it was not assigned back. I've corrected the assignment. Also, 'NaN ' in the original condition might need to be `df['Time_taken(min)'].notna()` if the column is already float.
-            fg = fgh.sort_values(['City','Time_taken(min)']).groupby('City').head(10) 
-            fg.columns = [ 'Cidades' , 'ID Entregadores', 'Tempo']    
-            st.dataframe(fg , hide_index= True )
+# ==============================================================================
+# SEÇÃO 3: VELOCIDADE OPERACIONAL (Ranking Top 10)
+# ==============================================================================
+st.markdown('#### ⚡ Os 10 entregadores mais rápidos por cidade')
+
+df['Time_taken(min)'] = df['Time_taken(min)'].astype(str).str.strip().str.replace('(min)', '', regex=False)
+df['Time_taken(min)'] = pd.to_numeric(df['Time_taken(min)'], errors='coerce')
+df['City'] = df['City'].astype(str).str.strip()
+df_velocidade = df[(df['Time_taken(min)'].notna()) & (df['City'] != 'NaN')]
+
+if not df_velocidade.empty:
+    fgh = df_velocidade.groupby(['City', 'Delivery_person_ID'])['Time_taken(min)'].mean().reset_index()
+    fg = fgh.sort_values(['City', 'Time_taken(min)']).groupby('City').head(10) 
+    fg.columns = ['Cidades', 'ID Entregador', 'Tempo Médio (min)']    
+    st.dataframe(fg, hide_index=True, use_container_width=True)
+    st.info("🏆 **Eficiência Operacional:** Ranking dos profissionais que realizam as entregas no menor tempo médio, segmentados por tipo de região.")
+else:
+    st.warning("Sem dados suficientes para calcular o ranking de velocidade.")

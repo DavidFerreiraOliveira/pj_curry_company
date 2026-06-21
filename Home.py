@@ -14,6 +14,9 @@ st.set_page_config(
     layout="wide"
 )
 
+
+# Código de leitura e limpeza de dados...
+# Criação do seu menu lateral personalizado (paginas = st.sidebar.radio...)
 # 2. Injeta CSS para zerar as margens e forçar 100% de largura real
 st.markdown("""
     <style>
@@ -39,29 +42,25 @@ st.markdown("""
 df = pd.read_csv('treino.csv')
 
 
-st.sidebar.title("Navegação")
-paginas = st.sidebar.radio("Selecione a visão:", 
-    ["🏠 Home", "🏢 Visão Empresa", "🚚 Visão Entregadores", "🍴 Visão Restaurantes"])
 
 # 4. LÓGICA DE CONEXÃO (Substitua seu bloco por este)
 # 4. LÓGICA DE CONEXÃO (Versão Otimizada)
-if paginas == "🏠 Home":
-    st.title("📊 Dashboard Cury Company")
-    st.markdown('---')
+st.title("📊 Dashboard Cury Company")
+st.markdown('---')
     
     # Seções com boa hierarquia de tamanhos
-    st.header("🎯 Sobre o Projeto")
-    st.markdown(
+st.header("🎯 Sobre o Projeto")
+st.markdown(
         "#### Este aplicativo foi desenvolvido como o meu **primeiro projeto de portfólio em Ciência de Dados**, "
         "utilizando dados operacionais da **Cury Company** — uma empresa de tecnologia que atua no modelo de Marketplace."
     )
     
-    st.markdown(
+st.markdown(
         "#### A plataforma realiza o intermédio de negócios conectando três pilares essenciais: "
         "**Restaurantes**, **Entregadores** e **Compradores**."
     )
     # Insira este bloco logo após a introdução da Home
-    with st.expander("💼 O Problema de Negócio"):
+with st.expander("💼 O Problema de Negócio"):
         st.markdown(
             "##### Apesar do crescimento acelerado no volume de entregas e da forte expansão da **Cury Company**, "
             "a liderança enfrentava um grande obstáculo estratégico: **a falta de visibilidade centralizada**."
@@ -74,7 +73,7 @@ if paginas == "🏠 Home":
         )
 
         
-    with st.expander("🎯 O Objetivo do Projeto"):
+with st.expander("🎯 O Objetivo do Projeto"):
         st.markdown("#### O objetivo principal deste projeto foi coletar, limpar e organizar essas métricas estratégicas, consolidando-as em uma **única ferramenta visual, interativa e de fácil acesso**.") 
         
         st.markdown("#### Com este painel, a liderança agora tem o poder de:")
@@ -90,43 +89,22 @@ if paginas == "🏠 Home":
 # ==============================================================================
 # Caixa de informação destacada para guiar o usuário
     
-if paginas == "🏠 Home":
+
 
     
     
     # Aqui fica a estrutura completa que você me mandou (dentro da Home)
-    with st.expander("📋 Veja a Estrutura Completa do Dashboard"):
+with st.expander("📋 Veja a Estrutura Completa do Dashboard"):
         st.markdown("##### 1. **Visão Empresa:** Análise Temporal, Distribuição de Tráfego e Geográfica.")
         st.markdown("##### 2. **Visão Entregadores:** Perfil Operacional, Desempenho e Eficiência.")
         st.markdown("##### 3. **Visão Restaurantes:** Indicadores Gerais, Impacto de Festivais e Distribuição de Tempo.")
     
     # Caixa de informação destacada para guiar o usuário (fora do expander
-    st.info("##### 👈 **Como navegar:** Selecione uma das visões de negócio no menu lateral para explorar os gráficos e mapas.")
+st.info("##### 👈 **Como navegar:** Selecione uma das visões de negócio no menu lateral para explorar os gráficos e mapas.")
 
        
 
 
-elif paginas == "🏢 Visão Empresa":
-    # O código específico da Empresa começa AQUI
-    st.title("🏢 Visão Empresa")
-    st.caption("##### Esta página apresenta o crescimento operacional da plataforma através de análises temporais, de tráfego e geográficas.")
-    st.markdown("---")
+
     
-    # --- SEUS GRÁFICOS E MAPAS DA EMPRESA ENTRAM AQUI ---
-
-
-elif paginas == "🚚 Visão Entregadores":
-    # O código específico dos Entregadores começa AQUI
-    st.title("🚚 Visão Entregadores")
-    st.caption("#### Esta página detalha o comportamento, eficiência e ranking dos 10 entregadores mais rápidos.")
-    st.markdown("---")
-    
-    # --- SEUS CARDS (st.metric) E GRÁFICOS DOS ENTREGADORES ENTRAN AQUI ---
-
-
-elif paginas == "🍴 Visão Restaurantes":
-    # O código específico dos Restaurantes começa AQUI
-    st.title("🍴 Visão Restaurantes")
-    st.caption("#### Esta página avalia a dinâmica dos estabelecimentos parceiros com foco em distância média e tempo de entrega.")
-    st.markdown("---")
-    
+  
