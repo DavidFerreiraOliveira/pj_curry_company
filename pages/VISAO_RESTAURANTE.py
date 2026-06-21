@@ -48,7 +48,7 @@ df = df[df['Order_Date'].dt.date <= date]
 df = df[df['Road_traffic_density'].isin(cond)]
 
 # Limpeza única da coluna de tempo (Evita repetição de código)
-df['Time_taken(min)'] = df['Time_taken(min)' ].astype(str).str.strip().str.replace('(min)', '', regex=False)
+df['Time_taken(min)'] = df['Time_taken(min)'].astype(str).str.strip().str.replace('(min)', '', regex=False)
 df['Time_taken(min)'] = pd.to_numeric(df['Time_taken(min)'], errors='coerce')
 df = df.dropna(subset=['Time_taken(min)'])
 
@@ -57,13 +57,25 @@ df['Festival'] = df['Festival'].astype(str).str.strip()
 df['City'] = df['City'].astype(str).str.strip()
 df = df[(df['City'] != 'NaN') & (df['City'] != 'nan') & (df['City'] != '')]
 
-# 🚨 SOLUÇÃO DEFINITIVA: Filtro de segurança e cálculo da distância no DF principal
-df = df[(df['Restaurant_latitude'] != 0) & (df['Restaurant_longitude'] != 0) &
-        (df['Delivery_location_latitude'] != 0) & (df['Delivery_location_longitude'] != 0)].copy()
-
-# Corrige o sinal invertido das latitudes para não deforma o cálculo do haversine
+# 🚨 TRATAMENTO GEOGRÁFICO: Corrige os sinais das coordenadas
 df['Restaurant_latitude'] = df['Restaurant_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
 df['Delivery_location_latitude'] = df['Delivery_location_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
+df['Restaurant_longitude'] = df['Restaurant_longitude'].apply(lambda x: -abs(x) if 0 < x < 100 else x)
+df['Delivery_location_longitude'] = df['Delivery_location_longitude'].apply(lambda x: -abs(x) if 0 < x < 100 else x)
+
+# 📐 CÁLCULO REAL DA DISTÂNCIA (Haversine)
+df['distance'] = df.apply(lambda x: haversine(
+    (x['Restaurant_latitude'], x['Restaurant_longitude']),
+    (x['Delivery_location_latitude'], x['Delivery_location_longitude'])
+), axis=1)
+
+# 🧹 FILTRO DE SEGURANÇA: Remove outliers e dados falsos para corrigir a média de 30km
+df = df[(df['distance'] < 30) & (df['distance'] > 0.1)]
+
+# ==============================================================================
+# CORPO PRINCIPAL DA PÁGINA
+# ==============================================================================
+
 
 # Cria a coluna distance para a página INTEIRA usar com segurança
 df['distance'] = df.apply(lambda x: haversine(
