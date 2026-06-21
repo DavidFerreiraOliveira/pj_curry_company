@@ -1,5 +1,3 @@
-
-
 import streamlit as st 
 import plotly.express as px
 import pandas as pd 
@@ -50,13 +48,28 @@ df = df[df['Order_Date'].dt.date <= date]
 df = df[df['Road_traffic_density'].isin(cond)]
 
 # Limpeza única da coluna de tempo (Evita repetição de código)
-df['Time_taken(min)'] = df['Time_taken(min)'].astype(str).str.strip().str.replace('(min)', '', regex=False)
+df['Time_taken(min)'] = df['Time_taken(min)' ].astype(str).str.strip().str.replace('(min)', '', regex=False)
 df['Time_taken(min)'] = pd.to_numeric(df['Time_taken(min)'], errors='coerce')
 df = df.dropna(subset=['Time_taken(min)'])
 
 # Limpeza de texto das colunas categóricas
 df['Festival'] = df['Festival'].astype(str).str.strip()
 df['City'] = df['City'].astype(str).str.strip()
+df = df[(df['City'] != 'NaN') & (df['City'] != 'nan') & (df['City'] != '')]
+
+# 🚨 SOLUÇÃO DEFINITIVA: Filtro de segurança e cálculo da distância no DF principal
+df = df[(df['Restaurant_latitude'] != 0) & (df['Restaurant_longitude'] != 0) &
+        (df['Delivery_location_latitude'] != 0) & (df['Delivery_location_longitude'] != 0)].copy()
+
+# Corrige o sinal invertido das latitudes para não deforma o cálculo do haversine
+df['Restaurant_latitude'] = df['Restaurant_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
+df['Delivery_location_latitude'] = df['Delivery_location_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
+
+# Cria a coluna distance para a página INTEIRA usar com segurança
+df['distance'] = df.apply(lambda x: haversine(
+    (x['Restaurant_latitude'], x['Restaurant_longitude']),
+    (x['Delivery_location_latitude'], x['Delivery_location_longitude'])
+), axis=1)
 
 # ==============================================================================
 # CORPO PRINCIPAL DA PÁGINA
@@ -83,24 +96,9 @@ with v1:
             entregadores = df['Delivery_person_ID'].nunique()
             c1.metric('Entregadores Únicos', entregadores)
             
-            # 🚨 FILTRO DE SEGURANÇA: Remove linhas onde as coordenadas são zero ou nulas
-            df_dist = df[(df['Restaurant_latitude'] != 0) & (df['Restaurant_longitude'] != 0) &
-                         (df['Delivery_location_latitude'] != 0) & (df['Delivery_location_longitude'] != 0)].copy()
-            
-            # Corrige o sinal invertido das latitudes que deforma o cálculo
-            df_dist['Restaurant_latitude'] = df_dist['Restaurant_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
-            df_dist['Delivery_location_latitude'] = df_dist['Delivery_location_latitude'].apply(lambda x: -abs(x) if 0 < x < 40 else x)
-            
-            # 📐 CÁLCULO DA DISTÂNCIA: Aplica a fórmula haversine linha por linha
-            df_dist['distance'] = df_dist.apply(lambda x: haversine(
-                (x['Restaurant_latitude'], x['Restaurant_longitude']),
-                (x['Delivery_location_latitude'], x['Delivery_location_longitude'])
-            ), axis=1)
-            
-            # Calcula a média de distância geral e exibe no segundo card (c2)
-            distancia_media = df_dist['distance'].mean()
+            # Distância média (Puxa direto do DF principal que já calculamos com segurança)
+            distancia_media = df['distance'].mean()
             c2.metric('Distância Média', f"{distancia_media:.2f} km")
-
 
         with meio: 
             st.markdown('#### 🎉 Dias Com Festival')
@@ -126,15 +124,15 @@ with v1:
                 c5.metric('Tempo Médio', "0.00 min")
                 c6.metric('Desvio Padrão', "0.00 min")
 
-     # ==============================================================================
+    # ==============================================================================
     # SEÇÃO 2: GRÁFICOS ANALÍTICOS (Distâncias e Tempos)
     # ==============================================================================
     with st.container():               
         st.markdown('''---''') 
         st.markdown('### 🏢 Distância Média das Entregas por Cidade')
         
-        df_dist_city = df[df['City'] != 'NaN']
-        avg_distancia_per_city = df_dist_city.groupby('City')['distance'].mean().reset_index() 
+        # Agrupamento seguro (coluna 'distance' garantida)
+        avg_distancia_per_city = df.groupby('City')['distance'].mean().reset_index() 
         
         fig_pie = px.pie( 
             avg_distancia_per_city,
@@ -155,10 +153,8 @@ with v1:
         st.markdown('''---''') 
         st.markdown('### ⏱️ Distribuição do Tempo de Entrega por Cidade') 
         
-        df_tempo_city = df[df['City'] != 'NaN']
-        
-        # 📊 TABELA: Agrupamento por Cidade e Tipo de Pedido (Parte recuperada)
-        tabela = (df_tempo_city.groupby(['City', 'Type_of_order'])['Time_taken(min)']
+        # 📊 TABELA: Agrupamento por Cidade e Tipo de Pedido
+        tabela = (df.groupby(['City', 'Type_of_order'])['Time_taken(min)']
                   .agg(media_min='mean', desvpd_mim='std')
                   .reset_index()
                   .round(2)
@@ -175,8 +171,8 @@ with v1:
         st.markdown('''---''') 
         st.markdown('### ☀️ O tempo médio e o desvio padrão de entrega por cidade e tipo de tráfego') 
       
-        # 🗺️ GRÁFICO SUNBURST: Agrupamento por Cidade e Tráfego (Parte recuperada)
-        df_aux = (df_tempo_city.groupby(['City', 'Road_traffic_density'])['Time_taken(min)'] 
+        # 🗺️ GRÁFICO SUNBURST: Agrupamento por Cidade e Tráfego
+        df_aux = (df.groupby(['City', 'Road_traffic_density'])['Time_taken(min)'] 
                     .agg(media_min='mean', desvpd_min='std') 
                     .reset_index()) 
         
@@ -191,3 +187,5 @@ with v1:
 
         st.plotly_chart(gb, use_container_width=True)
         st.info("☀️ **Mapa Multidimensional:** Gráfico que mapeia a hierarquia das cidades cruzada com as condições de trânsito. O tamanho das áreas indica o tempo médio e a variação de cor representa o desvio padrão (consistência dos tempos).")
+
+
